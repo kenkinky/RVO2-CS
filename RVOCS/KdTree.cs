@@ -249,6 +249,16 @@ namespace RVO
             return queryVisibilityRecursive(q1, q2, radius, obstacleTree_);
         }
 
+        internal int queryNearAgent(Vector2 point, float radius)
+        {
+            float rangeSq = float.MaxValue;
+            int agentNo = -1;
+            queryAgentTreeRecursive(point, ref rangeSq, ref agentNo, 0);
+            if (rangeSq < radius*radius)
+                return agentNo;
+            return -1;
+        }
+
         /**
          * <summary>Recursive method for building an agent k-D tree.</summary>
          *
@@ -473,6 +483,53 @@ namespace RVO
                 node.right_ = buildObstacleTreeRecursive(rightObstacles);
 
                 return node;
+            }
+        }
+
+        private void queryAgentTreeRecursive(Vector2 position, ref float rangeSq, ref int agentNo, int node)
+        {
+            if (agentTree_[node].end_ - agentTree_[node].begin_ <= MAX_LEAF_SIZE)
+            {
+                for (int i = agentTree_[node].begin_; i < agentTree_[node].end_; ++i)
+                {
+                    float distSq = RVOMath.absSq(position - agents_[i].position_);
+                    if (distSq < rangeSq)
+                    {
+                        rangeSq = distSq;
+                        agentNo = agents_[i].id_;
+                    }
+                }
+            }
+            else
+            {
+                float distSqLeft = RVOMath.sqr(Math.Max(0.0f, agentTree_[agentTree_[node].left_].minX_ - position.x_)) + RVOMath.sqr(Math.Max(0.0f, position.x_ - agentTree_[agentTree_[node].left_].maxX_)) + RVOMath.sqr(Math.Max(0.0f, agentTree_[agentTree_[node].left_].minY_ - position.y_)) + RVOMath.sqr(Math.Max(0.0f, position.y_ - agentTree_[agentTree_[node].left_].maxY_));
+                float distSqRight = RVOMath.sqr(Math.Max(0.0f, agentTree_[agentTree_[node].right_].minX_ - position.x_)) + RVOMath.sqr(Math.Max(0.0f, position.x_ - agentTree_[agentTree_[node].right_].maxX_)) + RVOMath.sqr(Math.Max(0.0f, agentTree_[agentTree_[node].right_].minY_ - position.y_)) + RVOMath.sqr(Math.Max(0.0f, position.y_ - agentTree_[agentTree_[node].right_].maxY_));
+
+                if (distSqLeft < distSqRight)
+                {
+                    if (distSqLeft < rangeSq)
+                    {
+                        queryAgentTreeRecursive(position, ref rangeSq, ref agentNo, agentTree_[node].left_);
+
+                        if (distSqRight < rangeSq)
+                        {
+                            queryAgentTreeRecursive(position, ref rangeSq, ref agentNo, agentTree_[node].right_);
+                        }
+                    }
+                }
+                else
+                {
+                    if (distSqRight < rangeSq)
+                    {
+                        queryAgentTreeRecursive(position, ref rangeSq, ref agentNo, agentTree_[node].right_);
+
+                        if (distSqLeft < rangeSq)
+                        {
+                            queryAgentTreeRecursive(position, ref rangeSq, ref agentNo, agentTree_[node].left_);
+                        }
+                    }
+                }
+
             }
         }
 

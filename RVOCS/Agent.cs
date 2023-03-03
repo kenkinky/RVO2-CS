@@ -54,6 +54,7 @@ namespace RVO
         internal float radius_ = 0.0f;
         internal float timeHorizon_ = 0.0f;
         internal float timeHorizonObst_ = 0.0f;
+        internal bool needDelete_ = false;
 
         private Vector2 newVelocity_;
 
